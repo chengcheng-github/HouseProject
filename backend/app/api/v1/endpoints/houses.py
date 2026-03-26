@@ -3,8 +3,9 @@ from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException, 
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 import os
-from ..deps import get_db, get_current_active_user, get_admin_user
-from ...schemas.house import (
+from app.utils.dependencies import get_mysql_db
+from app.api.v1.deps import get_current_active_user, get_admin_user
+from app.schemas.house import (
     HouseCreate,
     HouseUpdate,
     HouseStatusUpdate,
@@ -12,8 +13,8 @@ from ...schemas.house import (
     HouseResponse,
     HouseListResponse,
 )
-from ...schemas.response import SuccessResponse, PaginationParams, PaginatedResponse, PaginatedData
-from ...services.house_service import (
+from app.schemas.response import SuccessResponse, PaginationParams, PaginatedResponse, PaginatedData
+from app.services.house_service import (
     create_house,
     get_house_list,
     get_house_by_id,
@@ -23,8 +24,8 @@ from ...services.house_service import (
     add_house_image,
     delete_house_image,
 )
-from ...models.user import User
-from ...core.config import settings
+from app.models.mysqlModels import User
+from app.core.config import EnvConf
 
 router = APIRouter(prefix="/houses", tags=["房屋管理"])
 
@@ -33,7 +34,7 @@ router = APIRouter(prefix="/houses", tags=["房屋管理"])
 async def create_new_house(
     house_create: HouseCreate,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """创建房屋"""
     house = await create_house(db, house_create, current_user.id)
@@ -49,7 +50,7 @@ async def get_houses(
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
     current_user: Optional[User] = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取房屋列表"""
     pagination = PaginationParams(page=page, page_size=page_size)
@@ -111,7 +112,7 @@ async def get_my_houses(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取当前用户的房屋列表"""
     pagination = PaginationParams(page=page, page_size=page_size)
@@ -165,7 +166,7 @@ async def get_my_houses(
 async def get_house(
     house_id: int,
     current_user: Optional[User] = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取房屋详情"""
     house = await get_house_by_id(db, house_id)
@@ -191,7 +192,7 @@ async def update_house_info(
     house_id: int,
     house_update: HouseUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """更新房屋信息"""
     house = await update_house(
@@ -209,7 +210,7 @@ async def update_house_status_info(
     house_id: int,
     status_update: HouseStatusUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """更新房屋状态"""
     house = await update_house_status(
@@ -226,7 +227,7 @@ async def update_house_status_info(
 async def delete_house_info(
     house_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """删除房屋"""
     await delete_house(
@@ -244,7 +245,7 @@ async def upload_house_image(
     file: UploadFile = File(...),
     is_primary: bool = Query(False),
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """上传房屋图片"""
     # 检查文件类型
@@ -256,14 +257,14 @@ async def upload_house_image(
     
     # 检查文件大小
     contents = await file.read()
-    if len(contents) > settings.MAX_UPLOAD_SIZE:
+    if len(contents) > EnvConf.MAX_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"文件大小不能超过 {settings.MAX_UPLOAD_SIZE / 1024 / 1024}MB"
+            detail=f"文件大小不能超过 {EnvConf.MAX_UPLOAD_SIZE / 1024 / 1024}MB"
         )
     
     # 创建上传目录
-    upload_dir = os.path.join(settings.UPLOAD_DIR, f"houses/{house_id}")
+    upload_dir = os.path.join(EnvConf.UPLOAD_DIR, f"houses/{house_id}")
     os.makedirs(upload_dir, exist_ok=True)
     
     # 保存文件
@@ -292,7 +293,7 @@ async def remove_house_image(
     house_id: int,
     image_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """删除房屋图片"""
     await delete_house_image(

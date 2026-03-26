@@ -1,8 +1,8 @@
 from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from ..models.config import Config
-from ..core.exceptions import NotFoundException
+from app.models.mysqlModels import Config
+from app.core.exceptions import NotFoundException
 
 
 async def get_config(db: AsyncSession, key: str) -> Optional[Config]:

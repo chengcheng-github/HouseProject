@@ -2,11 +2,10 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func, update
 from sqlalchemy.orm import selectinload
-from ..models.house import House, HouseImage, HouseStatus
-from ..models.user import User
-from ..schemas.house import HouseCreate, HouseUpdate, HouseStatusUpdate, HouseImageCreate
-from ..schemas.response import PaginationParams
-from ..core.exceptions import (
+from app.models.mysqlModels import House, HouseImage, User
+from app.schemas.house import HouseCreate, HouseUpdate, HouseStatusUpdate, HouseImageCreate
+from app.schemas.response import PaginationParams
+from app.core.exceptions import (
     BadRequestException,
     NotFoundException,
     ForbiddenException,
@@ -18,7 +17,7 @@ async def create_house(db: AsyncSession, house_create: HouseCreate, user_id: int
     db_house = House(
         **house_create.model_dump(),
         user_id=user_id,
-        status=HouseStatus.DRAFT,
+        status="草稿",
         is_deleted=False,
     )
     
@@ -49,7 +48,7 @@ async def get_house_list(
     
     # 筛选条件
     if only_published:
-        stmt = stmt.where(House.status == HouseStatus.PUBLISHED)
+        stmt = stmt.where(House.status == "已上架")
     
     if title:
         stmt = stmt.where(House.title.contains(title))

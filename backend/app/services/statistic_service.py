@@ -1,9 +1,7 @@
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from ..models.statistics import Statistics
-from ..models.user import User
-from ..models.house import House
+from app.models.mysqlModels import Statistics, User, House
 
 
 async def get_daily_statistics(db: AsyncSession, date: datetime) -> Optional[Statistics]:

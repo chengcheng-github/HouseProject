@@ -1,10 +1,10 @@
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from ..models.user import User, UserRole
-from ..schemas.user import UserCreate, UserUpdate
-from ..core.security import verify_password, get_password_hash
-from ..core.exceptions import (
+from app.models.mysqlModels import User
+from app.schemas.user import UserCreate, UserUpdate
+from app.core.security import verify_password, get_password_hash
+from app.core.exceptions import (
     BadRequestException,
     NotFoundException,
     UnauthorizedException,
@@ -27,7 +27,7 @@ async def create_user(db: AsyncSession, user_create: UserCreate) -> User:
         password_hash=get_password_hash(user_create.password),
         nickname=user_create.nickname,
         avatar=user_create.avatar,
-        role=UserRole.USER,  # 默认是普通用户
+        role="user",  # 默认是普通用户
         is_active=True,
         is_deleted=False,
     )

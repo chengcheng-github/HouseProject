@@ -4,10 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 from sqlalchemy.orm import selectinload
 import redis.asyncio as redis
-from ..models.visit import HouseVisit, VisitStatus, VisitTimeSlot
-from ..models.house import House
-from ..models.user import User
-from ..core.exceptions import (
+from app.models.mysqlModels import HouseVisit, User
+from app.core.exceptions import (
     BadRequestException,
     NotFoundException,
     ForbiddenException,
@@ -24,7 +22,7 @@ async def check_visit_availability(
     db: AsyncSession,
     house_id: int,
     visit_date: date,
-    time_slot: VisitTimeSlot
+    time_slot: str
 ) -> bool:
     """检查预约是否可用"""
     # 首先检查房屋是否存在且已上架
@@ -51,7 +49,7 @@ async def check_visit_availability(
             stmt = select(func.count(HouseVisit.id)).where(
                 HouseVisit.house_id == house_id,
                 HouseVisit.visit_date == visit_date,
-                HouseVisit.status.in_([VisitStatus.PENDING, VisitStatus.CONFIRMED])
+                HouseVisit.status.in_(["待确认", "已确认"])
             )
             result = await db.execute(stmt)
             current_count = result.scalar() or 0
@@ -77,7 +75,7 @@ async def create_visit(
     visitor_name: str,
     visitor_phone: str,
     visit_date: date,
-    time_slot: VisitTimeSlot,
+    time_slot: str,
     remark: Optional[str] = None,
     created_by: Optional[int] = None
 ) -> HouseVisit:
@@ -94,7 +92,7 @@ async def create_visit(
         visitor_phone=visitor_phone,
         visit_date=visit_date,
         visit_time_slot=time_slot,
-        status=VisitStatus.PENDING,
+        status="待确认",
         remark=remark,
         created_by=created_by
     )
@@ -130,7 +128,7 @@ async def get_visit_by_id(db: AsyncSession, visit_id: int) -> Optional[HouseVisi
 async def update_visit_status(
     db: AsyncSession,
     visit_id: int,
-    status: VisitStatus,
+    status: str,
     user_id: int,
     is_admin: bool = False
 ) -> HouseVisit:
@@ -149,11 +147,11 @@ async def update_visit_status(
         raise ForbiddenException("没有权限修改该预约")
     
     # 只有待确认状态才能更新为已确认或已取消
-    if visit.status != VisitStatus.PENDING:
+    if visit.status != "待确认":
         raise BadRequestException("只能修改待确认状态的预约")
     
     # 如果取消预约，更新Redis缓存
-    if status == VisitStatus.CANCELLED:
+    if status == "已取消":
         redis_client = await get_redis_client()
         cache_key = f"house:available_dates:{visit.house_id}:{visit.visit_date}"
         
@@ -226,7 +224,7 @@ async def get_available_dates(
                 stmt = select(func.count(HouseVisit.id)).where(
                     HouseVisit.house_id == house_id,
                     HouseVisit.visit_date == check_date,
-                    HouseVisit.status.in_([VisitStatus.PENDING, VisitStatus.CONFIRMED])
+                    HouseVisit.status.in_(["待确认", "已确认"])
                 )
                 result = await db.execute(stmt)
                 current_count = result.scalar() or 0

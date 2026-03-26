@@ -4,12 +4,13 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status
 from fastapi.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from ..deps import get_db, get_admin_user, get_mongo_db
-from ...models.user import User
-from ...schemas.response import SuccessResponse
-from ...services.config_service import set_config, get_all_configs
-from ...services.statistic_service import get_weekly_statistics
-from ...services.log_service import log_operation
+from app.utils.dependencies import get_mysql_db
+from app.api.v1.deps import get_admin_user
+from app.models.mysqlModels import User
+from app.schemas.response import SuccessResponse
+from app.services.config_service import set_config, get_all_configs
+from app.services.statistic_service import get_weekly_statistics
+from app.services.log_service import log_operation
 
 router = APIRouter(prefix="/admin", tags=["运维管理"])
 
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/admin", tags=["运维管理"])
 @router.get("/configs", response_model=SuccessResponse[Dict[str, Any]])
 async def get_configurations(
     current_user: User = Depends(get_admin_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取所有配置"""
     configs = await get_all_configs(db)
@@ -30,7 +31,7 @@ async def update_configuration(
     value: str = Query(..., description="配置值"),
     description: str = Query(None, description="配置描述"),
     current_user: User = Depends(get_admin_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_mysql_db),
     request: Request = None
 ):
     """更新配置"""
@@ -57,7 +58,7 @@ async def update_configuration(
 @router.get("/statistics", response_model=SuccessResponse)
 async def get_statistics(
     current_user: User = Depends(get_admin_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取统计数据"""
     weekly_stats = await get_weekly_statistics(db)
@@ -82,8 +83,7 @@ async def get_operation_logs(
     action: str = Query(None, description="操作类型"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(get_admin_user),
-    mongo_db: AsyncIOMotorDatabase = Depends(get_mongo_db)
+    current_user: User = Depends(get_admin_user)
 ):
     """获取操作日志"""
     # 构建查询条件

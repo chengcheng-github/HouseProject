@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from datetime import datetime
-from ..models.user import UserRole
 
 
 class UserBase(BaseModel):
@@ -26,7 +25,7 @@ class UserUpdate(BaseModel):
 class UserInDB(UserBase):
     """数据库中的用户模型"""
     id: int
-    role: UserRole
+    role: Optional[str] = None
     is_active: bool
     is_deleted: bool
     created_at: datetime
@@ -39,7 +38,7 @@ class UserInDB(UserBase):
 class UserResponse(UserBase):
     """用户响应模型"""
     id: int
-    role: UserRole
+    role: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -62,7 +61,7 @@ class TokenData(BaseModel):
     """令牌数据模型"""
     user_id: Optional[int] = None
     email: Optional[str] = None
-    role: Optional[UserRole] = None
+    role: Optional[str] = None
 
 
 class EmailVerify(BaseModel):

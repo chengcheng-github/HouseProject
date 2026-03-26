@@ -1,15 +1,15 @@
 from datetime import datetime, timedelta
 from celery import shared_task
 import asyncio
-from ..core.database import async_session_factory
-from ..services.statistic_service import calculate_daily_statistics
+from app.utils.dependencies import get_mysql_db
+from app.services.statistic_service import calculate_daily_statistics
 
 
 @shared_task
 def calculate_daily_statistics_task():
     """每日统计任务"""
     async def run():
-        async with async_session_factory() as db:
+        async with get_mysql_db() as db:
             # 计算前一天的统计数据
             yesterday = datetime.now() - timedelta(days=1)
             yesterday = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)

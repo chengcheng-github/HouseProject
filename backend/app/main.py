@@ -13,20 +13,7 @@ async def create_tables():
         await conn.run_sync(Base.metadata.create_all)
 
 # 创建FastAPI应用
-app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION,
-    debug=settings.DEBUG,
-)
-
-# 配置CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # 生产环境应该设置具体的前端域名
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI()
 
 # 创建上传目录
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

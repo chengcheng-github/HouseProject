@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
-from ..models.house import HouseStatus
 from .user import UserResponse
 
 
@@ -56,13 +55,13 @@ class HouseUpdate(BaseModel):
 
 class HouseStatusUpdate(BaseModel):
     """房屋状态更新模型"""
-    status: HouseStatus
+    status: Optional[str] = None
 
 
 class HouseInDB(HouseBase):
     """数据库中的房屋模型"""
     id: int
-    status: HouseStatus
+    status: Optional[str] = None
     is_deleted: bool
     user_id: int
     created_at: datetime
@@ -75,7 +74,7 @@ class HouseInDB(HouseBase):
 class HouseResponse(HouseBase):
     """房屋响应模型"""
     id: int
-    status: HouseStatus
+    status: Optional[str] = None
     user_id: int
     user: Optional[UserResponse] = None
     images: List[HouseImageResponse] = []
@@ -95,7 +94,7 @@ class HouseListResponse(BaseModel):
     rooms: int
     address: str
     district: Optional[str] = None
-    status: HouseStatus
+    status: Optional[str] = None
     user_id: int
     user_nickname: Optional[str] = None
     primary_image: Optional[str] = None

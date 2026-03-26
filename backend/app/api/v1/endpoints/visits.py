@@ -2,11 +2,12 @@ from typing import List
 from datetime import date
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..deps import get_db, get_current_active_user, get_admin_user
-from ...models.user import User
-from ...models.visit import VisitStatus, VisitTimeSlot
-from ...schemas.response import SuccessResponse
-from ...services.visit_service import (
+from app.utils.dependencies import get_mysql_db
+from app.api.v1.deps import get_admin_user, get_current_active_user
+from app.models.mysqlModels import User
+from app.models.visit import VisitStatus, VisitTimeSlot
+from app.schemas.response import SuccessResponse
+from app.services.visit_service import (
     create_visit,
     update_visit_status,
     get_house_visits,
@@ -26,7 +27,7 @@ async def create_house_visit(
     time_slot: VisitTimeSlot = Query(..., description="时间段"),
     remark: str = Query(None, description="备注"),
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """创建预约"""
     visit = await create_visit(
@@ -47,7 +48,7 @@ async def create_house_visit(
 async def get_house_visit_list(
     house_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取房屋的预约列表"""
     visits = await get_house_visits(
@@ -63,7 +64,7 @@ async def get_house_visit_list(
 @router.get("/my", response_model=SuccessResponse)
 async def get_my_visits(
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取我的预约列表"""
     visits = await get_user_visits(db=db, user_id=current_user.id)
@@ -75,7 +76,7 @@ async def update_visit_status_info(
     visit_id: int,
     status: VisitStatus = Query(..., description="预约状态"),
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """更新预约状态"""
     visit = await update_visit_status(
@@ -93,7 +94,7 @@ async def update_visit_status_info(
 async def get_house_available_dates(
     house_id: int,
     days: int = Query(30, ge=1, le=90, description="查询天数"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取房屋的可预约日期"""
     dates = await get_available_dates(db=db, house_id=house_id, days=days)

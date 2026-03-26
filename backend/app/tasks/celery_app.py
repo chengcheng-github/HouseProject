@@ -1,13 +1,13 @@
 from celery import Celery
 from celery.schedules import crontab
 import asyncio
-from ..core.config import settings
+from app.core.config import EnvConf
 
 # 创建Celery应用
 celery_app = Celery(
     'house_website',
-    broker=f'amqp://{settings.RABBITMQ_USER}:{settings.RABBITMQ_PWD}@{settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}//',
-    backend=f'redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0'
+    broker=f'amqp://{EnvConf.RABBITMQ_USER}:{EnvConf.RABBITMQ_PWD}@{EnvConf.RABBITMQ_HOST}:{EnvConf.RABBITMQ_PORT}//',
+    backend=f'redis://{EnvConf.REDIS_HOST}:{EnvConf.REDIS_PORT}/0'
 )
 
 # 配置Celery

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..deps import get_db, get_current_active_user, get_admin_user
-from ...schemas.user import UserUpdate, UserResponse
-from ...schemas.response import SuccessResponse
-from ...services.user_service import update_user, get_user_by_id
-from ...models.user import User
+from app.utils.dependencies import get_mysql_db
+from app.api.v1.deps import get_current_active_user, get_admin_user
+from app.schemas.user import UserUpdate, UserResponse
+from app.schemas.response import SuccessResponse
+from app.services.user_service import update_user, get_user_by_id
+from app.models.mysqlModels import User
 
 router = APIRouter(prefix="/users", tags=["用户管理"])
 
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/users", tags=["用户管理"])
 async def update_my_profile(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """更新当前用户信息"""
     updated_user = await update_user(db, current_user.id, user_update)
@@ -24,7 +25,7 @@ async def update_my_profile(
 async def get_user(
     user_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_mysql_db)
 ):
     """获取用户信息（管理员或自己）"""
     # 只有管理员或用户自己可以查看
