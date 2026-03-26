@@ -1,56 +1,21 @@
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
-from .api.v1 import api_router
-from .core.config import settings
-from .core.database import engine, Base
-from .core.mongodb import get_mongo_client
+from app.api.v1.endpoints.admin import router as admin_router
+from app.api.v1.endpoints.houses import router as house_router
+from app.api.v1.endpoints.visits import router as visit_router
+from app.api.v1.endpoints.users import router as user_router
 
-# 创建数据库表
-async def create_tables():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
 # 创建FastAPI应用
 app = FastAPI()
 
-# 创建上传目录
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
-# 挂载静态文件目录
-app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
-
-# 注册路由
-app.include_router(api_router)
-
-# 启动事件
-@app.on_event("startup")
-async def startup_event():
-    await create_tables()
-    
-    # 初始化MongoDB连接
-    mongo_client = get_mongo_client()
-    app.state.mongo_db = mongo_client[settings.MONGO_DB]
-    print("数据库表创建完成")
-    print("MongoDB连接初始化完成")
-
-# 关闭事件
-@app.on_event("shutdown")
-async def shutdown_event():
-    if hasattr(app.state, 'mongo_db'):
-        app.state.mongo_db.client.close()
-
-# 根路径
-@app.get("/")
-async def root():
-    return {
-        "message": "房屋介绍网站API",
-        "version": settings.APP_VERSION,
-        "docs": "/docs",
-    }
-
-# 健康检查
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+app.include_router(admin_router)
+app.include_router(house_router)
+app.include_router(visit_router)
+app.include_router(user_router)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8089)
