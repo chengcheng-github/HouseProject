@@ -1,0 +1,190 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: house_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PWD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DB:-house}
+      MYSQL_USER: ${MYSQL_USER:-root}
+      MYSQL_PASSWORD: ${MYSQL_PWD:-123456}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - internal
+
+  # MongoDB数据库
+  mongodb:
+    image: mongo:6.0
+    container_name: house_mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-house}
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - internal
+
+  # Redis缓存
+  redis:
+    image: redis:7.0
+    container_name: house_redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - internal
+
+  # RabbitMQ消息队列
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: house_rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PWD:-123456}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - internal
+
+  # 后端应用
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: house_backend
+    restart: always
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-root}
+      - MYSQL_PWD=${MYSQL_PWD:-123456}
+      - MYSQL_DB=${MYSQL_DB:-house}
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=${MONGO_DB:-house}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-user}
+      - RABBITMQ_PWD=${RABBITMQ_PWD:-123456}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - internal
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: house_celery_worker
+    restart: always
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-root}
+      - MYSQL_PWD=${MYSQL_PWD:-123456}
+      - MYSQL_DB=${MYSQL_DB:-house}
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=${MONGO_DB:-house}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-user}
+      - RABBITMQ_PWD=${RABBITMQ_PWD:-123456}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - mysql
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - internal
+
+  # Celery Beat（定时任务）
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: house_celery_beat
+    restart: always
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER:-root}
+      - MYSQL_PWD=${MYSQL_PWD:-123456}
+      - MYSQL_DB=${MYSQL_DB:-house}
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=${MONGO_DB:-house}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-user}
+      - RABBITMQ_PWD=${RABBITMQ_PWD:-123456}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - mysql
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - internal
+
+  # 前端应用
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: house_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - internal
+
+volumes:
+  mysql_data:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
+  uploads:
+
+networks:
+  internal:
+    driver: bridge
